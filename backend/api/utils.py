@@ -29,3 +29,5 @@ def html_to_pdf(template_src, context_dict={}):
     if not pdf.err:
         return HttpResponse(result.getvalue(), content_type='application/pdf')
     return None
+
+# Для ревью - с удаленной статикой не работает кириллица в pdf
