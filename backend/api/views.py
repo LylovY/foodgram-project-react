@@ -1,13 +1,16 @@
+import os
+
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django_filters.rest_framework import DjangoFilterBackend
-from recipes.models import Ingredient, Recipe, Tag
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from users.models import Follow, User
 
+from recipes.models import Ingredient, Recipe, Tag
+from users.models import Follow, User
 from .filters import RecipeFilter
 from .mixins import CreateListRetrieveViewSet
 from .pagination import PageLimitPagination
@@ -30,6 +33,23 @@ class CustomUserViewSet(CreateListRetrieveViewSet):
         if self.action in ('subscribe', 'subscriptions'):
             return SubscribeSerializer
         return UserSerializer
+
+    def get_favorite(self, request, id, related_name):
+        user = request.user
+        recipe = get_object_or_404(Recipe, id=id)
+        recipes_user = getattr(recipe, related_name)
+        if request.method == "POST":
+            if recipes_user.filter(id=user.id).exists():
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            recipes_user.add(user)
+            serializer = RecipesSubscribeSerializer(
+                recipe, context={'request': request})
+            return Response(serializer.data)
+        if request.method == "DELETE":
+            if not recipes_user.filter(id=user.id).exists():
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            recipes_user.remove(user)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,
@@ -90,8 +110,8 @@ class CustomUserViewSet(CreateListRetrieveViewSet):
     )
     def subscriptions(self, request):
         user = request.user
-        recipes_limit = request.GET.get('recipes_limit', None)
-        queryset = self.queryset.filter(following__user=user).all()
+        recipes_limit = request.GET.get('recipes_limit')
+        queryset = self.queryset.filter(following__user=user)
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True, context={
@@ -127,20 +147,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
         permission_classes=(permissions.IsAuthenticated,),
     )
     def favorite(self, request, id):
-        user = request.user
-        recipe = get_object_or_404(Recipe, id=id)
-        if request.method == "POST":
-            if recipe.favorited.filter(id=user.id).exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            recipe.favorited.add(user)
-            serializer = RecipesSubscribeSerializer(
-                recipe, context={'request': request})
-            return Response(serializer.data)
-        if request.method == "DELETE":
-            if not recipe.favorited.filter(id=user.id).exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            recipe.favorited.remove(user)
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        return CustomUserViewSet.get_favorite(
+            self, request, id, related_name='favorited')
 
     @action(
         methods=["post", "delete"],
@@ -148,20 +156,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
         permission_classes=(permissions.IsAuthenticated,),
     )
     def shopping_cart(self, request, id):
-        user = request.user
-        recipe = get_object_or_404(Recipe, id=id)
-        if request.method == "POST":
-            if recipe.shopping_cart.filter(id=user.id).exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            recipe.shopping_cart.add(user)
-            serializer = RecipesSubscribeSerializer(
-                recipe, context={'request': request})
-            return Response(serializer.data)
-        if request.method == "DELETE":
-            if not recipe.shopping_cart.filter(id=user.id).exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            recipe.shopping_cart.remove(user)
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        return CustomUserViewSet.get_favorite(
+            self, request, id, related_name='shopping_cart')
 
     @action(
         ["get"],
@@ -171,19 +167,15 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
         user = request.user
         users_recipes = Recipe.objects.filter(shopping_cart=user)
-        data = dict()
-        for recipe in users_recipes:
-            ingredients = recipe.ingredients.all()
-            for ingredient in ingredients:
-                ingredient_name = (f'{ingredient.name} '
-                                   f'({ingredient.measurement_unit})')
-                ingredient_amount = ingredient.ingredients_recipe.get(
-                    reciepe=recipe, ingredient=ingredient).amount
-                data[ingredient_name] = (ingredient_amount +
-                                         data.setdefault(ingredient_name, 0))
+        data = Ingredient.objects.filter(recipes__in=users_recipes).annotate(
+            amount=Sum('ingredients_recipe__amount')
+        )
         open('api/templates/temp.html',
              "w").write(render_to_string('result.html', {'data': data}))
         pdf = html_to_pdf('temp.html')
+        path = os.path.join(os.path.abspath(
+            os.path.dirname(__file__)), 'templates/temp.html')
+        os.remove(path)
         return HttpResponse(pdf, content_type='application/pdf')
 
 

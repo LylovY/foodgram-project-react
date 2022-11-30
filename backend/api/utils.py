@@ -1,10 +1,10 @@
+import os
 from io import BytesIO
 
+from django.conf import settings
 from django.http import HttpResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
-from django.conf import settings
-import os
 
 
 def fetch_pdf_resources(uri, rel):
@@ -30,4 +30,3 @@ def html_to_pdf(template_src, context_dict={}):
         return HttpResponse(result.getvalue(), content_type='application/pdf')
     return None
 
-# Для ревью - с удаленной статикой не работает кириллица в pdf

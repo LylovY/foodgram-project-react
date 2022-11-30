@@ -1,7 +1,6 @@
+from core.models import CreatedModel, CreatedNameModel
+from django.core.validators import MinLengthValidator, MinValueValidator
 from django.db import models
-from django.core.validators import (MinLengthValidator, MinValueValidator)
-
-from core.models import CreatedNameModel, CreatedModel
 
 
 class Recipe(CreatedNameModel):
@@ -94,3 +93,7 @@ class RecipeIngredient(CreatedModel):
         verbose_name = 'Ингредиент рецепта'
         verbose_name_plural = 'Ингредиент рецепта'
         ordering = ['-pub_date']
+        constraints = [
+            models.UniqueConstraint(fields=['reciepe', 'ingredient'],
+                                    name='unique_reciepe_ingredient')
+        ]

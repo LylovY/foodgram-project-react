@@ -1,4 +1,3 @@
-{% load tz %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -48,10 +47,10 @@
           </tr>
         </thead>
         <tbody>
-          {% for ingredient, amount in data.items %}
+          {% for ingredient in data %}
             <tr>
               <td>{{ ingredient }}</td>
-              <td >{{ amount }}</td>
+              <td >{{ ingredient.amount }}</td>
               <td >      </td>
             </tr>
           {% endfor %}

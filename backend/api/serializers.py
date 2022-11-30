@@ -1,8 +1,10 @@
+from django.shortcuts import get_object_or_404
 from djoser.serializers import SetPasswordSerializer
-from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from rest_framework import serializers
-from users.models import Follow, User
+from rest_framework.validators import UniqueValidator
 
+from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
+from users.models import Follow, User
 from .fields import Base64ImageField
 
 
@@ -25,8 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user
         if user.is_authenticated:
-            if Follow.objects.filter(user=user, author=obj).exists():
-                return True
+            return Follow.objects.filter(user=user, author=obj).exists()
         return False
 
 
@@ -91,8 +92,7 @@ class SubscribeSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user
         if user.is_authenticated:
-            if Follow.objects.filter(user=user, author=obj).exists():
-                return True
+            return Follow.objects.filter(user=user, author=obj).exists()
         return False
 
     def get_recipes(self, obj):
@@ -194,16 +194,14 @@ class RecipesSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user
         if user.is_authenticated:
-            if obj.favorited.filter(id=user.id).exists():
-                return True
+            return obj.favorited.filter(id=user.id).exists()
         return False
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request')
         user = request.user
         if user.is_authenticated:
-            if obj.shopping_cart.filter(id=user.id).exists():
-                return True
+            return obj.shopping_cart.filter(id=user.id).exists()
         return False
 
 
@@ -231,35 +229,40 @@ class RecipesPostSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('author',)
 
+    def validate(self, data):
+        ingredients = data.get('recipes_ingredient')
+        ids = [i['ingredient'].get('id') for i in ingredients]
+        if len(ids) != len(set(ids)):
+            raise serializers.ValidationError(
+                'Дублирование ингредиентов'
+            )
+        return data
+
+    def nested_ingredients_save(self, ingredients, object):
+        for ingredient_note in ingredients:
+            print(ingredient_note)
+            id_ingredient = ingredient_note['ingredient'].get('id')
+            amount = ingredient_note.get('amount')
+            current_ingredient = get_object_or_404(
+                Ingredient, id=id_ingredient)
+            object.ingredients.add(
+                current_ingredient, through_defaults={'amount': amount})
+
     def create(self, validated_data):
         ingredients = validated_data.pop('recipes_ingredient')
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
-        for ingredient_note in ingredients:
-            id = ingredient_note['ingredient'].get('id')
-            amount = ingredient_note.get('amount')
-            current_ingredient = Ingredient.objects.get(id=id)
-            recipe.ingredients.add(
-                current_ingredient, through_defaults={'amount': amount})
+        RecipesPostSerializer.nested_ingredients_save(
+            self, ingredients, recipe)
         for tag in tags:
             recipe.tags.add(tag)
         return recipe
 
     def update(self, instance, validated_data):
-        instance.image = validated_data.get('image', instance.image)
-        instance.name = validated_data.get('name', instance.name)
-        instance.text = validated_data.get('text', instance.text)
-        instance.cooking_time = validated_data.get(
-            'cooking_time', instance.cooking_time)
-        instance.save()
         ingredients = validated_data.pop('recipes_ingredient')
         tags = validated_data.pop('tags')
         instance.ingredients.clear()
-        for ingredient_note in ingredients:
-            id = ingredient_note['ingredient'].get('id')
-            amount = ingredient_note.get('amount')
-            current_ingredient = Ingredient.objects.get(id=id)
-            instance.ingredients.add(
-                current_ingredient, through_defaults={'amount': amount})
+        RecipesPostSerializer.nested_ingredients_save(
+            self, ingredients, instance)
         instance.tags.set(tags)
-        return instance
+        return super().update(instance, validated_data)

@@ -1,13 +1,14 @@
 
 import os
-from dotenv import load_dotenv
 from datetime import timedelta
+
+from dotenv import load_dotenv
 
 load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-SECRET_KEY = '_1qpm3rdczm@d4c4egdhx5z+^hi8inpr)!l_94i3r)blf@0@i8'
+SECRET_KEY = os.getenv('SECRET_KEY', default='password')
 
 DEBUG = True
 
@@ -82,7 +83,6 @@ DATABASES = {
 }
 
 
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -108,7 +108,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
 
 
 STATIC_URL = '/static/'
