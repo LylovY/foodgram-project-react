@@ -14,8 +14,8 @@ from .pagination import PageLimitPagination
 from .permissions import AuthForItemOrReadOnly
 from .serializers import (CustomSetPasswordSerializer, IngredientSerializer,
                           RecipesPostSerializer, RecipesSerializer,
-                          RecipesSubscribeSerializer, SubscribeSerializer,
-                          TagSerializer, UserPostSerializer, UserSerializer)
+                          SubscribeSerializer, TagSerializer,
+                          UserPostSerializer, UserSerializer)
 from .utils import html_to_pdf
 
 
@@ -30,23 +30,6 @@ class CustomUserViewSet(CreateListRetrieveViewSet):
         if self.action in ('subscribe', 'subscriptions'):
             return SubscribeSerializer
         return UserSerializer
-
-    def get_favorite(self, request, id, related_name):
-        user = request.user
-        recipe = get_object_or_404(Recipe, id=id)
-        recipes_user = getattr(recipe, related_name)
-        if request.method == "POST":
-            if recipes_user.filter(id=user.id).exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            recipes_user.add(user)
-            serializer = RecipesSubscribeSerializer(
-                recipe, context={'request': request})
-            return Response(serializer.data)
-        if request.method == "DELETE":
-            if not recipes_user.filter(id=user.id).exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            recipes_user.remove(user)
-            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,
