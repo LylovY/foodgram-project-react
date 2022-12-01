@@ -1,9 +1,6 @@
-import os
-
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django.template.loader import render_to_string
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -11,10 +8,10 @@ from rest_framework.response import Response
 
 from recipes.models import Ingredient, Recipe, Tag
 from users.models import Follow, User
-from .filters import RecipeFilter
-from .mixins import CreateListRetrieveViewSet
+from .mixins import (CreateListRetrieveViewSet,
+                     CreateListRetrieveDelUpdFovoriteViewSet)
 from .pagination import PageLimitPagination
-from .permissions import AuthForItemOrReadOnly, AuthorOrAuthOrReadOnly
+from .permissions import AuthForItemOrReadOnly
 from .serializers import (CustomSetPasswordSerializer, IngredientSerializer,
                           RecipesPostSerializer, RecipesSerializer,
                           RecipesSubscribeSerializer, SubscribeSerializer,
@@ -124,14 +121,9 @@ class CustomUserViewSet(CreateListRetrieveViewSet):
         return Response(serializer.data)
 
 
-class RecipesViewSet(viewsets.ModelViewSet):
+class RecipesViewSet(CreateListRetrieveDelUpdFovoriteViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipesSerializer
-    pagination_class = PageLimitPagination
-    permission_classes = (AuthorOrAuthOrReadOnly,)
-    filter_backends = (DjangoFilterBackend,)
-    filterset_class = RecipeFilter
-    lookup_field = 'id'
 
     def get_serializer_class(self):
         if self.action in ('retrieve', 'list'):
@@ -142,24 +134,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)
 
     @action(
-        methods=["post", "delete"],
-        detail=True,
-        permission_classes=(permissions.IsAuthenticated,),
-    )
-    def favorite(self, request, id):
-        return CustomUserViewSet.get_favorite(
-            self, request, id, related_name='favorited')
-
-    @action(
-        methods=["post", "delete"],
-        detail=True,
-        permission_classes=(permissions.IsAuthenticated,),
-    )
-    def shopping_cart(self, request, id):
-        return CustomUserViewSet.get_favorite(
-            self, request, id, related_name='shopping_cart')
-
-    @action(
         ["get"],
         detail=False,
         permission_classes=(permissions.IsAuthenticated,),
@@ -167,15 +141,13 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
         user = request.user
         users_recipes = Recipe.objects.filter(shopping_cart=user)
-        data = Ingredient.objects.filter(recipes__in=users_recipes).annotate(
-            amount=Sum('ingredients_recipe__amount')
+        data = Ingredient.objects.filter(
+            recipes__in=users_recipes).values(
+                'name', 'measurement_unit').annotate(
+                    amount=Sum('ingredients_recipe__amount')
         )
-        open('api/templates/temp.html',
-             "w").write(render_to_string('result.html', {'data': data}))
-        pdf = html_to_pdf('temp.html')
-        path = os.path.join(os.path.abspath(
-            os.path.dirname(__file__)), 'templates/temp.html')
-        os.remove(path)
+        data_dict = {'data': data}
+        pdf = html_to_pdf('spisok_template.html', data_dict)
         return HttpResponse(pdf, content_type='application/pdf')
 
 

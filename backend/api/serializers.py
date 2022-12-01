@@ -240,7 +240,6 @@ class RecipesPostSerializer(serializers.ModelSerializer):
 
     def nested_ingredients_save(self, ingredients, object):
         for ingredient_note in ingredients:
-            print(ingredient_note)
             id_ingredient = ingredient_note['ingredient'].get('id')
             amount = ingredient_note.get('amount')
             current_ingredient = get_object_or_404(

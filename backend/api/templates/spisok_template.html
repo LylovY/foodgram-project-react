@@ -43,14 +43,16 @@
           <tr>
             <th>Ингредиент</th>
             <th>Количество</th>
+            <th>Единица измерения</th>
             <th>Отметка</th>
           </tr>
         </thead>
         <tbody>
           {% for ingredient in data %}
             <tr>
-              <td>{{ ingredient }}</td>
+              <td>{{ ingredient.name }}</td>
               <td >{{ ingredient.amount }}</td>
+              <td >{{ ingredient.measurement_unit }}</td>
               <td >      </td>
             </tr>
           {% endfor %}
