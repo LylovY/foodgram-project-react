@@ -12,7 +12,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', default='password')
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 AUTH_USER_MODEL = 'users.User'
