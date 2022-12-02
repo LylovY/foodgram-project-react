@@ -1,0 +1,12 @@
+django==2.2.16
+djangorestframework==3.12.4
+psycopg2-binary==2.8.6
+python-dotenv
+djangorestframework-simplejwt==4.7.2
+djoser
+Pillow
+django-filter==2.4
+django-cors-headers==3.0.0
+xhtml2pdf
+gunicorn
+
