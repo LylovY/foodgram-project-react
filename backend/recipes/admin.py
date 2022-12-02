@@ -12,8 +12,8 @@ class RecipeAdmin(admin.ModelAdmin):
 
     def favorite_count_field(self, obj):
         return obj.favorited.count()
-    favorite_count_field.short_description = (f'Количество добавлений '
-                                              f'рецепта в избранное')
+    favorite_count_field.short_description = ('Количество добавлений '
+                                              'рецепта в избранное')
 
     list_display = (
         'pk',
