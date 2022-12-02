@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from djoser.serializers import SetPasswordSerializer
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
+# from rest_framework.validators import UniqueValidator
 
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from users.models import Follow, User
