@@ -8,32 +8,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Запуск actions checkout — готового скрипта
-    # для клонирования репозитория
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      # Запуск actions setup-python — готового скрипта
-      # для развёртывания окружения Python
-      uses: actions/setup-python@v2
-      with:
-        # Выбор версии Python
-        python-version: 3.7
+      # Запуск actions checkout — готового скрипта
+      # для клонирования репозитория
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        # Запуск actions setup-python — готового скрипта
+        # для развёртывания окружения Python
+        uses: actions/setup-python@v2
+        with:
+          # Выбор версии Python
+          python-version: 3.7
 
-    - name: Install dependencies
-      run: |
-        # обновление pip
-        python -m pip install --upgrade pip
-        # установка flake8 и его плагинов
-        pip install flake8 pep8-naming flake8-broken-line flake8-return flake8-isort==5.0.0
-        # установка зависимостей
-        pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          # обновление pip
+          python -m pip install --upgrade pip
+          # установка flake8 и его плагинов
+          pip install flake8 pep8-naming flake8-broken-line flake8-return flake8-isort==5.0.0
+          # установка зависимостей
+          pip install -r requirements.txt
 
-    - name: Test with flake8 and django tests
-      run: |
-        # запуск проверки проекта по flake8
-        python -m flake8
-        # # запустить написанные разработчиком тесты
-        # pytest
+      - name: Test with flake8 and django tests
+        run: |
+          # запуск проверки проекта по flake8
+          python -m flake8
+          # # запустить написанные разработчиком тесты
+          # pytest
   build_and_push_to_docker_hub:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
@@ -58,28 +58,29 @@ jobs:
           context: backend
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/foodgram_back:latest
-  # deploy:
-  #   runs-on: ubuntu-latest
-  #   needs: build_and_push_to_docker_hub
-  #   steps:
-  #     - name: executing remote ssh commands to deploy
-  #       uses: appleboy/ssh-action@master
-  #       with:
-  #         host: ${{ secrets.HOST }}
-  #         username: ${{ secrets.USER }}
-  #         key: ${{ secrets.SSH_KEY }}
-  #         passphrase: ${{ secrets.PASSPHRASE }}
-  #         script: |
-  #           sudo docker-compose stop
-  #           sudo docker-compose rm web
-  #           touch .env
-  #           echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
-  #           echo DB_NAME=${{ secrets.DB_NAME }} >> .env
-  #           echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} >> .env
-  #           echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
-  #           echo DB_HOST=${{ secrets.DB_HOST }} >> .env
-  #           echo DB_PORT=${{ secrets.DB_PORT }} >> .env
-  #           sudo docker-compose up -d
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build_and_push_to_docker_hub
+    steps:
+      - name: executing remote ssh commands to deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+          script: |
+            sudo docker pull hedin11/foodgram_back:latest
+            sudo docker-compose stop
+            sudo docker-compose rm backend
+            touch .env
+            echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
+            echo DB_NAME=${{ secrets.DB_NAME }} >> .env
+            echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} >> .env
+            echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
+            echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+            echo DB_PORT=${{ secrets.DB_PORT }} >> .env
+            sudo docker-compose up -d
   # send_message:
   #   runs-on: ubuntu-latest
   #   needs: deploy
@@ -90,4 +91,4 @@ jobs:
   #       to: ${{ secrets.TELEGRAM_TO }}
   #       token: ${{ secrets.TELEGRAM_TOKEN }}
   #       message: ${{ github.workflow }} успешно выполнен!
-  #v1
+  #v2
