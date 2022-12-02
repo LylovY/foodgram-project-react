@@ -9,3 +9,4 @@ django-filter==2.4
 django-cors-headers==3.0.0
 xhtml2pdf
 gunicorn
+
