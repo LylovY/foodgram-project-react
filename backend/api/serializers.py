@@ -1,9 +1,9 @@
 from django.shortcuts import get_object_or_404
 from djoser.serializers import SetPasswordSerializer
-from rest_framework import serializers
-
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
+from rest_framework import serializers
 from users.models import Follow, User
+
 from .fields import Base64ImageField
 
 
