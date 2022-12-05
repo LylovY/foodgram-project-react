@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from users.models import Follow, User
 
+from .filters import CustomSearchFilter
 from .mixins import (CreateListRetrieveDelUpdFovoriteViewSet,
                      CreateListRetrieveViewSet)
 from .pagination import PageLimitPagination
@@ -136,7 +137,7 @@ class RecipesViewSet(CreateListRetrieveDelUpdFovoriteViewSet):
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    filter_backends = (CustomSearchFilter, filters.OrderingFilter)
     search_fields = ('^name',)
     ordering = ('name',)
 
