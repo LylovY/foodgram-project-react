@@ -5,7 +5,7 @@
 ![](https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=green)
 ![](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white)
 ![](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=Postman&logoColor=white)
-
+![](https://github.com/LylovY/yamdb_final/actions/workflows/yamdb_workflow.yml/badge.svg)
 
 Foodgram - проект, позволяющий публиковать рецепты пользователей. Foodgram поддерживает следующий функционал:
 
@@ -33,57 +33,39 @@ git clone git@github.com:LylovY/foodgram-project-react.git
 BACKEND
 
 ```
-cd backend
+cd infra
 ```
-Cоздать и активировать виртуальное окружение:
+Запустить контейнеры:
 
 
 ```
-python3 -m venv env
-
-source env/bin/activate
-
-python3 -m pip install --upgrade pip
+docker-compose up -d
 ```
 
-Установить зависимости из файла requirements.txt:
+Провести миграции в БД:
 
 ```
-pip install -r requirements.txt
+docker-compose exec backend python manage.py migrate
 ```
 
-Выполнить миграции:
+Создать Superuser:
 
 ```
-python3 manage.py migrate
+docker-compose exec backend python manage.py createsuperuser
 ```
-Запустить проект:
+
+Собрать статику
 
 ```
-python3 manage.py runserver
+docker-compose exec backend python manage.py collectstatic --no-input
 ```
+
 Загрузка ингредиентов в базу
 
 ```
 python3 manage.py csv_to_sql
 ```
 
-
-FRONTEND
-
-```
-cd ../frontend
-```
-Установить зависимости
-
-```
-npm i
-```
-Запустить проект
-
-```
-npm run start
-```
 
 
 ## Примеры работы API

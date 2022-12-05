@@ -19,7 +19,6 @@ class RecipeAdmin(admin.ModelAdmin):
         'pk',
         'name',
         'author',
-        'favorite_count_field',
     )
 
     search_fields = (
@@ -65,6 +64,11 @@ class TagAdmin(admin.ModelAdmin):
 
 
 class IngredientAdmin(admin.ModelAdmin):
+    list_display = (
+        'pk',
+        'name',
+        'measurement_unit',
+    )
     list_filter = (
         'pk',
         'name',
