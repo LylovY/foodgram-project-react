@@ -137,10 +137,11 @@ class RecipesViewSet(CreateListRetrieveDelUpdFovoriteViewSet):
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = (filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend,
+                       filters.OrderingFilter)
     search_fields = ('^name',)
     ordering = ('name',)
-    #filterset_fields = ('name',)
+    # filterset_fields = ('name',)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
