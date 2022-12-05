@@ -96,4 +96,3 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
 admin.site.register(Recipe, RecipeAdmin)
 admin.site.register(Tag, TagAdmin)
 admin.site.register(Ingredient, IngredientAdmin)
-admin.site.register(RecipeIngredient, RecipeIngredientAdmin)

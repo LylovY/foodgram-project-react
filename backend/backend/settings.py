@@ -143,6 +143,3 @@ CORS_URLS_REGEX = r'^/api/.*$'
 
 CSV_FILE_PATH = os.path.join(BASE_DIR, './data/ingredients.csv')
 
-# REST_FRAMEWORK = {
-#     'SEARCH_PARAM': 'name'
-# }
