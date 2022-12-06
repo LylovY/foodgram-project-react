@@ -1,9 +1,9 @@
 from django.shortcuts import get_object_or_404
 from djoser.serializers import SetPasswordSerializer
-from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from rest_framework import serializers
-from users.models import Follow, User
 
+from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
+from users.models import Follow, User
 from .fields import Base64ImageField
 
 
@@ -149,6 +149,12 @@ class RecipeIngredientPostSerializer(serializers.ModelSerializer):
             'id',
             'amount',
         )
+
+    def validate_amount(self, value):
+        if value < 0:
+            raise serializers.ValidationError('Количество не может'
+                                              'быть отрицательным')
+        return value
 
 
 class IngredientSerializer(serializers.ModelSerializer):

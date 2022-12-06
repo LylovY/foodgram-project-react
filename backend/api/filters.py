@@ -1,6 +1,7 @@
 import django_filters
-from recipes.models import Recipe, Tag
 from rest_framework import filters
+
+from recipes.models import Recipe, Tag
 from users.models import User
 
 

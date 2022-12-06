@@ -1,6 +1,7 @@
-from core.models import CreatedModel, CreatedNameModel
 from django.core.validators import MinLengthValidator, MinValueValidator
 from django.db import models
+
+from core.models import CreatedModel, CreatedNameModel
 
 
 class Recipe(CreatedNameModel):
