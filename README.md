@@ -1,4 +1,4 @@
-# praktikum_new_diplom
+
 
 ![](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![](https://img.shields.io/badge/django%20rest-ff1709?style=for-the-badge&logo=django&logoColor=white)
@@ -14,9 +14,9 @@ Foodgram - проект, позволяющий публиковать реце�
 - Выбор ингредиентов
 - Регистрация пользователей
 
+Проект доступен по адресу
 http://51.250.78.86
-admin@admin.ru
-пароль adminadmin
+
 
 ## Пользовательские роли
 
