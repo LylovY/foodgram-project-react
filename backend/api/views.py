@@ -1,12 +1,12 @@
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from recipes.models import Ingredient, Recipe, Tag
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
-from recipes.models import Ingredient, Recipe, Tag
 from users.models import Follow, User
+
 from .filters import CustomSearchFilter
 from .mixins import (CreateListRetrieveDelUpdFovoriteViewSet,
                      CreateListRetrieveViewSet)
@@ -36,6 +36,7 @@ class CustomUserViewSet(CreateListRetrieveViewSet):
         methods=['get'],
         permission_classes=(permissions.IsAuthenticated,),
         url_path='me',
+        url_name='me',
     )
     def me_path(self, request):
         if request.method == 'GET':
@@ -74,7 +75,7 @@ class CustomUserViewSet(CreateListRetrieveViewSet):
             Follow.objects.create(user=user, author=recipe_author)
             serializer = SubscribeSerializer(
                 recipe_author, context={'request': request})
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         if request.method == "DELETE":
             if not Follow.objects.filter(
                     user=user, author=recipe_author).exists():
@@ -140,8 +141,10 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (CustomSearchFilter, filters.OrderingFilter)
     search_fields = ('^name',)
     ordering = ('name',)
+    lookup_url_kwarg = 'id'
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    lookup_url_kwarg = 'id'

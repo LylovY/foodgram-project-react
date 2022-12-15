@@ -24,9 +24,12 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
-        user = request.user
-        if user.is_authenticated:
-            return Follow.objects.filter(user=user, author=obj).exists()
+        if request is not None:
+            user = request.user
+            if user.is_authenticated:
+                return Follow.objects.filter(user=user, author=obj).exists()
+            else:
+                return False
         return False
 
 
@@ -197,16 +200,22 @@ class RecipesSerializer(serializers.ModelSerializer):
 
     def get_is_favorited(self, obj):
         request = self.context.get('request')
-        user = request.user
-        if user.is_authenticated:
-            return obj.favorited.filter(id=user.id).exists()
+        if request is not None:
+            user = request.user
+            if user.is_authenticated:
+                return obj.favorited.filter(id=user.id).exists()
+            else:
+                return False
         return False
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request')
-        user = request.user
-        if user.is_authenticated:
-            return obj.shopping_cart.filter(id=user.id).exists()
+        if request is not None:
+            user = request.user
+            if user.is_authenticated:
+                return obj.shopping_cart.filter(id=user.id).exists()
+            else:
+                return False
         return False
 
 

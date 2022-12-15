@@ -45,7 +45,7 @@ class CreateListRetrieveDelUpdFovoriteViewSet(
             recipes_user.add(user)
             serializer = RecipesSubscribeSerializer(
                 recipe, context={'request': request})
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         if request.method == "DELETE":
             if not recipes_user.filter(id=user.id).exists():
                 return Response(status=status.HTTP_400_BAD_REQUEST)
