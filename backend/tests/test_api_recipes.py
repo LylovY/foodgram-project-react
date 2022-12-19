@@ -1,7 +1,9 @@
 from collections import OrderedDict
 from unittest import TestCase
 
+from django.db import connection
 from django.urls import reverse
+from django.test.utils import CaptureQueriesContext
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
@@ -88,7 +90,9 @@ class RecipesApiTestCase(APITestCase):
 
     def test_recipe_get_list(self):
         url = reverse('api:recipes-list')
-        response = self.client.get(url)
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.get(url)
+            print('queries', len(queries))
         serializer_data = RecipesSerializer([self.recipe_3, self.recipe_2, self.recipe_1], many=True).data
         self.assertEqual(status.HTTP_200_OK, response.status_code)
         self.assertEqual(serializer_data, response.data)
