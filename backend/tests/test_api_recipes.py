@@ -2,12 +2,14 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from django.db import connection
+from django.db.models import Exists, OuterRef
 from django.urls import reverse
 from django.test.utils import CaptureQueriesContext
 from rest_framework import status
-from rest_framework.test import APIClient, APITestCase
+from rest_framework.test import APIClient, APIRequestFactory, APITestCase
 
 from api.serializers import RecipesSerializer, IngredientSerializer, TagSerializer
+from api.views import RecipesViewSet
 from recipes.models import Ingredient, Tag, Recipe
 from users.models import User
 
@@ -87,22 +89,35 @@ class RecipesApiTestCase(APITestCase):
         cls.recipe_3.tags.add(2)
         cls.auth_client = APIClient()
         cls.auth_client.force_authenticate(user=cls.user_1)
+        cls.factory = APIRequestFactory()
 
     def test_recipe_get_list(self):
         url = reverse('api:recipes-list')
+        request = self.factory.get(url)
+        view = RecipesViewSet.as_view({'get': 'list'})
         with CaptureQueriesContext(connection) as queries:
-            response = self.client.get(url)
+            response = view(request)
             print('queries', len(queries))
-        serializer_data = RecipesSerializer([self.recipe_3, self.recipe_2, self.recipe_1], many=True).data
+        recipes = Recipe.objects.all().annotate(
+            is_favorited=Exists(User.objects.filter(id=request.user.id, is_favorited=OuterRef('id'))),
+            is_in_shopping_cart=Exists(User.objects.filter(id=request.user.id, is_in_shopping_cart=OuterRef('id'))),
+        )
+        serializer_data = RecipesSerializer(recipes, many=True).data
         self.assertEqual(status.HTTP_200_OK, response.status_code)
         self.assertEqual(serializer_data, response.data)
 
     def test_recipe_get_detail(self):
         pk = self.recipe_2.id
         url = reverse('api:recipes-detail', kwargs={'id': pk})
+        request = self.factory.get(url)
+        view = RecipesViewSet.as_view({'get': 'retrieve'})
         response_auth = self.auth_client.get(url)
-        response = self.client.get(url)
-        serializer_data = RecipesSerializer(self.recipe_2).data
+        response = view(request, id=pk)
+        recipes = Recipe.objects.annotate(
+            is_favorited=Exists(User.objects.filter(id=request.user.id, is_favorited=OuterRef('id'))),
+            is_in_shopping_cart=Exists(User.objects.filter(id=request.user.id, is_in_shopping_cart=OuterRef('id'))),
+        ).get(id=pk)
+        serializer_data = RecipesSerializer(recipes).data
         self.assertEqual(status.HTTP_200_OK, response_auth.status_code)
         self.assertEqual(status.HTTP_200_OK, response.status_code)
         self.assertEqual(serializer_data, response_auth.data)
@@ -230,14 +245,22 @@ class RecipesApiTestCase(APITestCase):
     def test_recipe_search_author(self):
         url = reverse('api:recipes-list')
         response = self.client.get(url, data={'author': 3})
-        serializer_data = RecipesSerializer([self.recipe_3], many=True).data
+        recipes = Recipe.objects.annotate(
+            is_favorited=Exists(User.objects.filter(id=self.user_1.id, is_favorited=OuterRef('id'))),
+            is_in_shopping_cart=Exists(User.objects.filter(id=self.user_1.id, is_in_shopping_cart=OuterRef('id'))),
+        ).filter(author__id=3)
+        serializer_data = RecipesSerializer(recipes, many=True).data
         self.assertEqual(status.HTTP_200_OK, response.status_code)
         self.assertEqual(serializer_data, response.data)
 
     def test_recipe_search_tags(self):
         url = reverse('api:recipes-list')
         response = self.client.get(url, data={'tags': 'tag3'})
-        serializer_data = RecipesSerializer([self.recipe_2], many=True).data
+        recipes = Recipe.objects.annotate(
+            is_favorited=Exists(User.objects.filter(id=self.user_1.id, is_favorited=OuterRef('id'))),
+            is_in_shopping_cart=Exists(User.objects.filter(id=self.user_1.id, is_in_shopping_cart=OuterRef('id'))),
+        ).filter(id=2)
+        serializer_data = RecipesSerializer(recipes, many=True).data
         self.assertEqual(status.HTTP_200_OK, response.status_code)
         self.assertEqual(serializer_data, response.data)
 
@@ -296,7 +319,11 @@ class RecipeSerializerTestCase(TestCase):
             cooking_time=1,
             author=user_1
         )
-        data = RecipesSerializer(recipe_1).data
+        recipes = Recipe.objects.annotate(
+            is_favorited=Exists(User.objects.filter(id=user_1.id, is_favorited=OuterRef('id'))),
+            is_in_shopping_cart=Exists(User.objects.filter(id=user_1.id, is_in_shopping_cart=OuterRef('id'))),
+        ).get(id=1)
+        data = RecipesSerializer(recipes).data
         expected_data = {
             'id': 1,
             'tags': [],

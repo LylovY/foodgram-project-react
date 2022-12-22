@@ -1,4 +1,4 @@
-from django.db.models import Sum
+from django.db.models import Count, Exists, OuterRef, Prefetch, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from recipes.models import Ingredient, Recipe, Tag
@@ -21,8 +21,15 @@ from .utils import html_to_pdf
 
 class CustomUserViewSet(CreateListRetrieveViewSet):
     serializer_class = UserSerializer
-    queryset = User.objects.all()
+    # queryset = User.objects.all()
     permission_classes = (AuthForItemOrReadOnly,)
+
+    def get_queryset(self):
+        queryset = User.objects.prefetch_related('is_favorited', 'is_in_shopping_cart').annotate(
+            recipes_count=Count('recipes'),
+            is_subscribed=Exists(Follow.objects.filter(user=self.request.user.id, author=OuterRef('id')))
+        )
+        return queryset
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -41,7 +48,10 @@ class CustomUserViewSet(CreateListRetrieveViewSet):
     def me_path(self, request):
         if request.method == 'GET':
             user = request.user
-            serializer = UserSerializer(user, context={'request': request})
+            user_query = User.objects.annotate(
+                is_subscribed=Exists(Follow.objects.filter(user=user, author=user))
+            ).get(id=user.id)
+            serializer = UserSerializer(user_query, context={'request': request})
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -92,22 +102,30 @@ class CustomUserViewSet(CreateListRetrieveViewSet):
     def subscriptions(self, request):
         user = request.user
         recipes_limit = request.GET.get('recipes_limit')
-        queryset = self.queryset.filter(following__user=user)
+        queryset = self.get_queryset().filter(following__user=user)
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True, context={
-                                             'request': request,
-                                             'recipes_limit': recipes_limit})
+                'request': request,
+                'recipes_limit': recipes_limit})
             return self.get_paginated_response(serializer.data)
         serializer = SubscribeSerializer(queryset, many=True, context={
-                                         'request': request,
-                                         'recipes_limit': recipes_limit})
+            'request': request,
+            'recipes_limit': recipes_limit})
         return Response(serializer.data)
 
 
 class RecipesViewSet(CreateListRetrieveDelUpdFovoriteViewSet):
-    queryset = Recipe.objects.all()
+    # queryset = Recipe.objects.all()
     serializer_class = RecipesSerializer
+
+    def get_queryset(self):
+        queryset = Recipe.objects.select_related('author').prefetch_related('ingredients', 'tags').annotate(
+            is_favorited=Exists(User.objects.filter(id=self.request.user.id, is_favorited=OuterRef('id'))),
+            is_in_shopping_cart=Exists(
+                User.objects.filter(id=self.request.user.id, is_in_shopping_cart=OuterRef('id'))),
+        )
+        return queryset
 
     def get_serializer_class(self):
         if self.action in ('retrieve', 'list'):
@@ -127,8 +145,8 @@ class RecipesViewSet(CreateListRetrieveDelUpdFovoriteViewSet):
         users_recipes = Recipe.objects.filter(shopping_cart=user)
         data = Ingredient.objects.filter(
             recipes__in=users_recipes).values(
-                'name', 'measurement_unit').annotate(
-                    amount=Sum('ingredients_recipe__amount')
+            'name', 'measurement_unit').annotate(
+            amount=Sum('ingredients_recipe__amount')
         )
         data_dict = {'data': data}
         pdf = html_to_pdf('spisok_template.html', data_dict)

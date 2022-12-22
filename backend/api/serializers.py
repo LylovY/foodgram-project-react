@@ -9,6 +9,7 @@ from .fields import Base64ImageField
 
 class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
+    # is_subscribed = serializers.BooleanField()
 
     class Meta:
         model = User
@@ -70,9 +71,11 @@ class RecipesSubscribeSerializer(serializers.ModelSerializer):
 
 
 class SubscribeSerializer(serializers.ModelSerializer):
-    recipes_count = serializers.SerializerMethodField()
+    # recipes_count = serializers.SerializerMethodField()
+    recipes_count = serializers.IntegerField(read_only=True)
     recipes = serializers.SerializerMethodField()
-    is_subscribed = serializers.SerializerMethodField()
+    # is_subscribed = serializers.SerializerMethodField()
+    is_subscribed = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
@@ -87,15 +90,15 @@ class SubscribeSerializer(serializers.ModelSerializer):
             'recipes_count',
         )
 
-    def get_recipes_count(self, obj):
-        return obj.recipes.count()
+    # def get_recipes_count(self, obj):
+    #     return obj.recipes.count()
 
-    def get_is_subscribed(self, obj):
-        request = self.context.get('request')
-        user = request.user
-        if user.is_authenticated:
-            return Follow.objects.filter(user=user, author=obj).exists()
-        return False
+    # def get_is_subscribed(self, obj):
+    #     request = self.context.get('request')
+    #     user = request.user
+    #     if user.is_authenticated:
+    #         return Follow.objects.filter(user=user, author=obj).exists()
+    #     return False
 
     def get_recipes(self, obj):
         recipes_limit = self.context.get('recipes_limit')
@@ -180,8 +183,10 @@ class RecipesSerializer(serializers.ModelSerializer):
         read_only=True,
         many=True,
     )
-    is_favorited = serializers.SerializerMethodField()
-    is_in_shopping_cart = serializers.SerializerMethodField()
+    # is_favorited = serializers.SerializerMethodField()
+    is_favorited = serializers.BooleanField(read_only=True)
+    # is_in_shopping_cart = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Recipe
@@ -198,25 +203,25 @@ class RecipesSerializer(serializers.ModelSerializer):
             'cooking_time',
         )
 
-    def get_is_favorited(self, obj):
-        request = self.context.get('request')
-        if request is not None:
-            user = request.user
-            if user.is_authenticated:
-                return obj.favorited.filter(id=user.id).exists()
-            else:
-                return False
-        return False
+    # def get_is_favorited(self, obj):
+    #     request = self.context.get('request')
+    #     if request is not None:
+    #         user = request.user
+    #         if user.is_authenticated:
+    #             return obj.favorited.filter(id=user.id).exists()
+    #         else:
+    #             return False
+    #     return False
 
-    def get_is_in_shopping_cart(self, obj):
-        request = self.context.get('request')
-        if request is not None:
-            user = request.user
-            if user.is_authenticated:
-                return obj.shopping_cart.filter(id=user.id).exists()
-            else:
-                return False
-        return False
+    # def get_is_in_shopping_cart(self, obj):
+    #     request = self.context.get('request')
+    #     if request is not None:
+    #         user = request.user
+    #         if user.is_authenticated:
+    #             return obj.shopping_cart.filter(id=user.id).exists()
+    #         else:
+    #             return False
+    #     return False
 
 
 class RecipesPostSerializer(serializers.ModelSerializer):

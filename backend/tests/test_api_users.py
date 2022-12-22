@@ -1,5 +1,8 @@
 from unittest import TestCase
 
+from django.db import connection
+from django.db.models import Count, Exists, OuterRef
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
@@ -32,8 +35,15 @@ class UsersApiTestCase(APITestCase):
 
     def test_get_list(self):
         url = reverse('api:users-list')
-        response = self.client.get(url)
-        serializer_data = UserSerializer([self.user_2, self.user_1], many=True).data
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.get(url)
+            print('queries', len(queries))
+        # response = self.client.get(url)
+        users = User.objects.all().annotate(
+            recipes_count=Count('recipes'),
+            is_subscribed=Exists(Follow.objects.filter(user=self.user_2, author=OuterRef('id')))
+        )
+        serializer_data = UserSerializer(users, many=True).data
         self.assertEqual(status.HTTP_200_OK, response.status_code)
         self.assertEqual(serializer_data, response.data)
 
@@ -42,7 +52,11 @@ class UsersApiTestCase(APITestCase):
         url = reverse('api:users-detail', kwargs={'id': pk})
         response_auth = self.auth_client.get(url)
         response = self.client.get(url)
-        serializer_data = UserSerializer(self.user_2).data
+        users = User.objects.all().annotate(
+            recipes_count=Count('recipes'),
+            is_subscribed=Exists(Follow.objects.filter(user=self.user_2, author=OuterRef('id')))
+        ).get(id=self.user_2.id)
+        serializer_data = UserSerializer(users).data
         self.assertEqual(status.HTTP_200_OK, response_auth.status_code)
         self.assertEqual(status.HTTP_401_UNAUTHORIZED, response.status_code)
         self.assertEqual(serializer_data, response_auth.data)
@@ -64,7 +78,10 @@ class UsersApiTestCase(APITestCase):
     def test_user_me(self):
         url = reverse('api:users-me')
         response_auth = self.auth_client.get(url)
-        serializer_data = UserSerializer(self.user_1).data
+        users = User.objects.annotate(
+            is_subscribed=Exists(Follow.objects.filter(user=self.user_1, author=self.user_1))
+        ).get(id=self.user_1.id)
+        serializer_data = UserSerializer(users).data
         self.assertEqual(status.HTTP_200_OK, response_auth.status_code)
         self.assertEqual(serializer_data, response_auth.data)
 
@@ -90,6 +107,7 @@ class UsersApiTestCase(APITestCase):
         response_auth_before = self.auth_client.get(url)
         response_auth = self.auth_client.delete(url_subs)
         response_auth_after = self.auth_client.get(url)
+        self.assertEqual(status.HTTP_204_NO_CONTENT, response_auth.status_code)
         self.assertEqual(True, response_auth_before.data['is_subscribed'])
         self.assertNotEqual(True, response_auth_after.data['is_subscribed'])
 
@@ -113,7 +131,11 @@ class UserSerializerTestCase(TestCase):
             last_name='test',
             password='test',
         )
-        data = UserSerializer(user_1).data
+        users = User.objects.all().annotate(
+            recipes_count=Count('recipes'),
+            is_subscribed=Exists(Follow.objects.filter(user=user_1, author=OuterRef('id')))
+        ).get(id=user_1.id)
+        data = UserSerializer(users).data
         expected_data = {
             "email": 'test@example.com',
             "id": user_1.id,

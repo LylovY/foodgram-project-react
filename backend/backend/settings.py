@@ -10,7 +10,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = os.getenv('SECRET_KEY', default='password')
 
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
@@ -146,3 +146,4 @@ CORS_ORIGIN_ALLOW_ALL = False
 CORS_URLS_REGEX = r'^/api/.*$'
 
 CSV_FILE_PATH = os.path.join(BASE_DIR, './data/ingredients.csv')
+
